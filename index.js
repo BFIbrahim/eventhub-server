@@ -91,6 +91,15 @@ async function run() {
 
         })
 
+        app.get('/events', async(req, res) => {
+            try {
+                const events = await eventsCollection.find({}).toArray()
+                res.send(events)
+            } catch (error) {
+                console.log({error: error.message})
+            }
+        })
+
         await client.db('admin').command({ ping: 1 })
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     }
