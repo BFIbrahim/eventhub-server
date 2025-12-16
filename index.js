@@ -28,12 +28,16 @@ async function run() {
         const database = client.db('database')
         const userCollections = database.collection('users')
         const registeredeventCollections = database.collection('registeredEvents')
+        const eventsCollection = database.collection('events')
 
         app.get('/users', async (req, res) => {
-            const users = await userCollections.find({}).toArray();
-            res.send(users);
+            try {
+                const users = await userCollections.find({}).toArray();
+                res.send(users);
+            } catch (error) {
+                res.status(500).send({ message: "Failed to get users", error: error.message });
+            }
         });
-
         app.post('/users', async (req, res) => {
             try {
                 const user = req.body
@@ -62,15 +66,29 @@ async function run() {
                     eventId: registration.eventId
                 })
 
-                if(exist){
-                    return res.send({message: 'User already exists'})
+                if (exist) {
+                    return res.send({ message: 'User already exists' })
                 }
 
                 const result = await registeredeventCollections.insertOne(registration)
                 res.send(result)
             } catch (error) {
-                res.send({error: error.message})
+                res.send({ error: error.message })
             }
+        })
+
+        app.post('/events', async (req, res) => {
+            try {
+                const event = req.body
+
+                event.createdAt = new Date()
+
+                const result = await eventsCollection.insertOne(event)
+                res.send(result)
+            } catch (error) {
+                res.send({ error: error.message })
+            }
+
         })
 
         await client.db('admin').command({ ping: 1 })
