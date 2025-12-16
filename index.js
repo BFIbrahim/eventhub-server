@@ -6,7 +6,7 @@ const { MongoClient, ServerApiVersion } = require('mongodb');
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT;
 
 app.use(cors());
 app.use(express.json());
@@ -32,6 +32,25 @@ async function run() {
             const users = await userCollections.find({}).toArray();
             res.send(users);
         });
+
+        app.post('/users', async (req, res) => {
+            try {
+                const user = req.body
+
+                const existUser = await userCollections.findOne({ email: user.email })
+
+                if (existUser) {
+                   return res.send({ message: 'User Already exist' })
+                }
+
+                const result = await userCollections.insertOne(user)
+                res.send(result)
+
+            } catch (error) {
+                res.status(500).send({ error: error.message });
+            }
+
+        })
 
         await client.db('admin').command({ ping: 1 })
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
