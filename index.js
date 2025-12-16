@@ -25,8 +25,9 @@ async function run() {
     try {
         await client.connect()
 
-        const userDB = client.db('userDB')
-        const userCollections = userDB.collection('users')
+        const database = client.db('database')
+        const userCollections = database.collection('users')
+        const registeredeventCollections = database.collection('registeredEvents')
 
         app.get('/users', async (req, res) => {
             const users = await userCollections.find({}).toArray();
@@ -40,7 +41,7 @@ async function run() {
                 const existUser = await userCollections.findOne({ email: user.email })
 
                 if (existUser) {
-                   return res.send({ message: 'User Already exist' })
+                    return res.send({ message: 'User Already exist' })
                 }
 
                 const result = await userCollections.insertOne(user)
@@ -50,6 +51,26 @@ async function run() {
                 res.status(500).send({ error: error.message });
             }
 
+        })
+
+        app.post('/registeredEvents', async (req, res) => {
+            try {
+                const registration = req.body
+
+                const exist = await registeredeventCollections.findOne({
+                    userEmail: registration.userEmail,
+                    eventId: registration.eventId
+                })
+
+                if(exist){
+                    return res.send({message: 'User already exists'})
+                }
+
+                const result = await registeredeventCollections.insertOne(registration)
+                res.send(result)
+            } catch (error) {
+                res.send({error: error.message})
+            }
         })
 
         await client.db('admin').command({ ping: 1 })
