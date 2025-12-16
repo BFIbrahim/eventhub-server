@@ -59,21 +59,43 @@ async function run() {
 
         app.post('/registeredEvents', async (req, res) => {
             try {
-                const registration = req.body
+                const registration = req.body;
+
+                if (!registration.userEmail || !registration.eventId) {
+                    return res.status(400).send({ message: 'Email and Event ID are required' });
+                }
 
                 const exist = await registeredeventCollections.findOne({
                     userEmail: registration.userEmail,
                     eventId: registration.eventId
-                })
+                });
 
                 if (exist) {
-                    return res.send({ message: 'User already exists' })
+                    return res.status(400).send({ message: 'User already registered for this event' });
                 }
 
-                const result = await registeredeventCollections.insertOne(registration)
-                res.send(result)
+                const result = await registeredeventCollections.insertOne(registration);
+                res.send(result);
+
             } catch (error) {
-                res.send({ error: error.message })
+                console.error(error);
+                res.status(500).send({ error: error.message });
+            }
+        });
+
+
+        app.get('/registeredEvents', async (req, res) => {
+            try {
+                const email = req.query.email
+                if (!email) {
+                    return res.send({ message: "Email is required" });
+                }
+
+                const result = await registeredeventCollections.find({ userEmail: email }).toArray()
+                res.send(result)
+
+            } catch (error) {
+                console.log({ error: error, message })
             }
         })
 
@@ -91,12 +113,12 @@ async function run() {
 
         })
 
-        app.get('/events', async(req, res) => {
+        app.get('/events', async (req, res) => {
             try {
                 const events = await eventsCollection.find({}).toArray()
                 res.send(events)
             } catch (error) {
-                console.log({error: error.message})
+                console.log({ error: error.message })
             }
         })
 
