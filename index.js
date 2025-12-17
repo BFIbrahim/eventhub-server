@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 dotenv.config();
 
@@ -11,7 +11,7 @@ const port = process.env.PORT;
 app.use(cors());
 app.use(express.json());
 
-const uri = "mongodb+srv://mdibrahim36194_db_user:XSGmqvzubfyvFygQ@cluster0.livuvkt.mongodb.net/?appName=Cluster0";
+const uri = `mongodb+srv://${process.env.DB_Username}:${process.env.DB_Password}@cluster0.livuvkt.mongodb.net/?appName=Cluster0`;
 
 const client = new MongoClient(uri, {
     serverApi: {
@@ -39,6 +39,24 @@ async function run() {
                 res.status(500).send({ message: "Failed to get users", error: error.message });
             }
         });
+
+        app.get('/users/:email', async (req, res) => {
+            try {
+                const email = req.params.email;
+
+                const user = await userCollections.findOne({ email });
+
+                if (!user) {
+                    return res.status(404).send({ message: "User not found" });
+                }
+
+                res.send(user);
+            } catch (error) {
+                res.status(500).send({ error: error.message });
+            }
+        });
+
+
         app.post('/users', async (req, res) => {
             try {
                 const user = req.body
@@ -103,6 +121,7 @@ async function run() {
         app.delete('/registeredEvents/:id', async (req, res) => {
             try {
                 const id = req.params.id;
+
                 const result = await registeredeventCollections.deleteOne({
                     _id: new ObjectId(id)
                 });
@@ -112,13 +131,12 @@ async function run() {
                 }
 
                 res.send({ message: "Booking cancelled successfully" });
+
             } catch (error) {
                 console.error("Delete Error:", error);
                 res.status(500).send({ error: error.message });
             }
         });
-
-
 
         app.post('/events', async (req, res) => {
             try {
@@ -217,8 +235,6 @@ async function run() {
                 });
             }
         });
-
-
 
         await client.db('admin').command({ ping: 1 })
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
