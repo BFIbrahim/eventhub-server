@@ -29,6 +29,7 @@ async function run() {
         const userCollections = database.collection('users')
         const registeredeventCollections = database.collection('registeredEvents')
         const eventsCollection = database.collection('events')
+        const reviewCollection = database.collection('reviews')
 
         app.get('/users', async (req, res) => {
             try {
@@ -99,6 +100,26 @@ async function run() {
             }
         })
 
+        app.delete('/registeredEvents/:id', async (req, res) => {
+            try {
+                const id = req.params.id;
+                const result = await registeredeventCollections.deleteOne({
+                    _id: new ObjectId(id)
+                });
+
+                if (result.deletedCount === 0) {
+                    return res.status(404).send({ message: "Booking not found" });
+                }
+
+                res.send({ message: "Booking cancelled successfully" });
+            } catch (error) {
+                console.error("Delete Error:", error);
+                res.status(500).send({ error: error.message });
+            }
+        });
+
+
+
         app.post('/events', async (req, res) => {
             try {
                 const event = req.body
@@ -121,6 +142,83 @@ async function run() {
                 console.log({ error: error.message })
             }
         })
+
+        app.post('/reviews', async (req, res) => {
+            try {
+                const review = req.body;
+
+                const {
+                    bookingId,
+                    eventId,
+                    userEmail,
+                    userName,
+                    rating,
+                    comment
+                } = review;
+
+                if (!bookingId || !eventId || !userEmail || !rating || !comment) {
+                    return res.status(400).send({
+                        message: "All required fields must be provided"
+                    });
+                }
+
+                const existingReview = await reviewCollection.findOne({
+                    bookingId: bookingId
+                });
+
+                if (existingReview) {
+                    return res.status(409).send({
+                        message: "Review already submitted for this booking"
+                    });
+                }
+
+                const reviewData = {
+                    bookingId,
+                    eventId,
+                    userEmail,
+                    userName,
+                    rating,
+                    comment,
+                    createdAt: new Date()
+                };
+
+                const result = await reviewCollection.insertOne(reviewData);
+
+                res.send({
+                    success: true,
+                    message: "Review submitted successfully",
+                    insertedId: result.insertedId
+                });
+
+            } catch (error) {
+                console.error("Review Error:", error.message);
+                res.status(500).send({
+                    success: false,
+                    message: "Failed to submit review",
+                    error: error.message
+                });
+            }
+        });
+
+        app.get('/reviews', async (req, res) => {
+            try {
+                const reviews = await reviewCollection
+                    .find({})
+                    .sort({ createdAt: -1 })
+                    .limit(9)
+                    .toArray();
+
+                res.send(reviews);
+            } catch (error) {
+                console.error("Get Reviews Error:", error.message);
+                res.status(500).send({
+                    message: "Failed to load reviews",
+                    error: error.message
+                });
+            }
+        });
+
+
 
         await client.db('admin').command({ ping: 1 })
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
